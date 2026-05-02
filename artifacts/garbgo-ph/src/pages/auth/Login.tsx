@@ -19,18 +19,23 @@ function LoginForm() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
       if (error) throw error
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .single()
+      let role = authData.user.user_metadata?.role
+      if (!role) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .maybeSingle()
+        role = profile?.role
+      }
 
-      if (profile?.role === 'collector') {
+      if (role === 'collector') {
         navigate('/collector/jobs')
       } else {
         navigate('/customer/dashboard')

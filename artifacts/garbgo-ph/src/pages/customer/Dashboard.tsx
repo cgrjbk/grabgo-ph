@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLocation } from 'wouter'
 import { MapPin, Clock, CheckCircle, Loader2, Plus } from 'lucide-react'
@@ -19,21 +18,25 @@ export default function CustomerDashboard() {
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [, navigate] = useLocation()
-  const supabase = createClient()
 
   useEffect(() => {
     const fetchBookings = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data } = await supabase
-        .from('bookings')
-        .select('*, waste_types(name)')
-        .eq('customer_id', user.id)
-        .order('created_at', { ascending: false })
+        const { data } = await supabase
+          .from('bookings')
+          .select('*, waste_types(name)')
+          .eq('customer_id', user.id)
+          .order('created_at', { ascending: false })
 
-      setBookings(data || [])
-      setLoading(false)
+        setBookings(data || [])
+      } catch {
+      } finally {
+        setLoading(false)
+      }
     }
     fetchBookings()
   }, [])

@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Truck, User } from 'lucide-react'
 import { toast } from 'sonner'
+import SupabaseGuard from '@/components/shared/SupabaseGuard'
 
-export default function SignupPage() {
+function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState<'customer' | 'collector'>('customer')
   const [formData, setFormData] = useState({
@@ -18,12 +19,12 @@ export default function SignupPage() {
     password: '',
   })
   const [, navigate] = useLocation()
-  const supabase = createClient()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
+      const supabase = createClient()
       const { error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -44,14 +45,15 @@ export default function SignupPage() {
         } else {
           toast.error("Signup failed", { description: authError.message })
         }
-        throw authError
+        return
       }
 
       toast.success("Account created successfully!", {
         description: "You can now login.",
       })
       navigate('/auth/login')
-    } catch {
+    } catch (error: any) {
+      toast.error("Signup failed", { description: error.message })
     } finally {
       setLoading(false)
     }
@@ -164,5 +166,13 @@ export default function SignupPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <SupabaseGuard>
+      <SignupForm />
+    </SupabaseGuard>
   )
 }

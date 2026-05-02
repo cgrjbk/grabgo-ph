@@ -27,12 +27,13 @@ export default function BookPickupPage() {
     notes: '',
   })
 
-  const supabase = createClient()
-
   useEffect(() => {
     const fetchWasteTypes = async () => {
-      const { data } = await supabase.from('waste_types').select('*')
-      setWasteTypes(data || [])
+      try {
+        const supabase = createClient()
+        const { data } = await supabase.from('waste_types').select('*')
+        setWasteTypes(data || [])
+      } catch {}
     }
     fetchWasteTypes()
   }, [])
@@ -59,6 +60,7 @@ export default function BookPickupPage() {
     }
     setLoading(true)
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Please log in again")
 

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { useLocation } from 'wouter'
 import { Truck, Briefcase, DollarSign, LogOut } from 'lucide-react'
+import SupabaseGuard from './SupabaseGuard'
 
-export default function CollectorLayout({ children }: { children: React.ReactNode }) {
+function CollectorNav({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
   const [, navigate] = useLocation()
-  const supabase = createClient()
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -21,6 +23,7 @@ export default function CollectorLayout({ children }: { children: React.ReactNod
   }, [])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     navigate('/')
   }
@@ -61,5 +64,13 @@ export default function CollectorLayout({ children }: { children: React.ReactNod
         {children}
       </main>
     </div>
+  )
+}
+
+export default function CollectorLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SupabaseGuard>
+      <CollectorNav>{children}</CollectorNav>
+    </SupabaseGuard>
   )
 }

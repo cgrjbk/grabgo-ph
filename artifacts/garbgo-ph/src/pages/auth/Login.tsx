@@ -1,23 +1,24 @@
 import { useState } from 'react'
 import { useLocation } from 'wouter'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Truck } from 'lucide-react'
 import { toast } from 'sonner'
+import SupabaseGuard from '@/components/shared/SupabaseGuard'
 
-export default function LoginPage() {
+function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [, navigate] = useLocation()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -97,5 +98,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <SupabaseGuard>
+      <LoginForm />
+    </SupabaseGuard>
   )
 }

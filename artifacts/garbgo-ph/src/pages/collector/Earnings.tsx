@@ -7,22 +7,26 @@ import CollectorLayout from '@/components/shared/CollectorLayout'
 export default function CollectorEarningsPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     const fetchEarnings = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data } = await supabase
-        .from('bookings')
-        .select('*, waste_types(name)')
-        .eq('collector_id', user.id)
-        .in('status', ['accepted', 'in_progress', 'completed'])
-        .order('created_at', { ascending: false })
+        const { data } = await supabase
+          .from('bookings')
+          .select('*, waste_types(name)')
+          .eq('collector_id', user.id)
+          .in('status', ['accepted', 'in_progress', 'completed'])
+          .order('created_at', { ascending: false })
 
-      setJobs(data || [])
-      setLoading(false)
+        setJobs(data || [])
+      } catch {
+      } finally {
+        setLoading(false)
+      }
     }
     fetchEarnings()
   }, [])

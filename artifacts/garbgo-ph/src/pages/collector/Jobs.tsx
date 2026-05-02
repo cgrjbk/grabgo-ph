@@ -10,16 +10,20 @@ export default function CollectorJobsPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState<string | null>(null)
-  const supabase = createClient()
 
   const fetchJobs = async () => {
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, waste_types(name, base_price_per_kg)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-    setJobs(data || [])
-    setLoading(false)
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('bookings')
+        .select('*, waste_types(name, base_price_per_kg)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+      setJobs(data || [])
+    } catch {
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -29,6 +33,7 @@ export default function CollectorJobsPage() {
   const handleAccept = async (jobId: string) => {
     setAccepting(jobId)
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 

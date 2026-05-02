@@ -1,6 +1,6 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import LandingPage from "@/pages/Landing";
 import LoginPage from "@/pages/auth/Login";
 import SignupPage from "@/pages/auth/Signup";

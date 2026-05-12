@@ -14,13 +14,17 @@ export default function CollectorJobsPage() {
   const fetchJobs = async () => {
     try {
       const supabase = createClient()
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select('*, waste_types(name, base_price_per_kg)')
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
+
+      if (error) console.error('Fetch error:', error)
       setJobs(data || [])
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err)
+      toast.error("Failed to load available jobs")
     } finally {
       setLoading(false)
     }
@@ -32,22 +36,45 @@ export default function CollectorJobsPage() {
 
   const handleAccept = async (jobId: string) => {
     setAccepting(jobId)
+
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
 
-      const { error } = await supabase
+      if (!user) throw new Error("Please log in again")
+
+      const { data, error } = await supabase
         .from('bookings')
-        .update({ status: 'accepted', collector_id: user.id })
+        .update({
+          status: 'accepted',
+          collector_id: user.id
+        })
         .eq('id', jobId)
+        .eq('status', 'pending')
+        .select()
+        .single()
 
-      if (error) throw error
+      if (error) {
+        console.error("Update Error:", error)
+        throw error
+      }
 
-      toast.success("Job accepted!", { description: "Head to the pickup location." })
+      if (!data) {
+        throw new Error("Job not found or already taken")
+      }
+
+      toast.success("Job accepted successfully!", {
+        description: "Head to the pickup location."
+      })
+
+      // Refresh the list
       setJobs(prev => prev.filter(j => j.id !== jobId))
+
     } catch (error: any) {
-      toast.error("Failed to accept job", { description: error.message })
+      console.error("Full Accept Error:", error)
+      toast.error("Failed to accept job", {
+        description: error.message || "Please try again"
+      })
     } finally {
       setAccepting(null)
     }
@@ -84,6 +111,7 @@ export default function CollectorJobsPage() {
                     <h3 className="text-xl font-semibold mb-3">
                       {job.waste_types?.name || 'Waste Pickup'}
                     </h3>
+
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-emerald-600" />
@@ -96,25 +124,35 @@ export default function CollectorJobsPage() {
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-emerald-600" />
                         {new Date(job.created_at).toLocaleDateString('en-PH', {
-                          year: 'numeric', month: 'short', day: 'numeric'
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
                         })}
                       </div>
                     </div>
+
                     {job.notes && (
                       <p className="text-sm text-gray-500 italic mb-4">"{job.notes}"</p>
                     )}
+
                     <div className="flex items-center justify-between">
                       <p className="text-2xl font-bold text-emerald-700">
                         ₱{(job.total_amount || 0).toFixed(2)}
                       </p>
+
                       <Button
                         onClick={() => handleAccept(job.id)}
                         disabled={accepting === job.id}
                         className="px-8"
                       >
                         {accepting === job.id ? (
-                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Accepting...</>
-                        ) : 'Accept Job'}
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Accepting...
+                          </>
+                        ) : (
+                          'Accept Job'
+                        )}
                       </Button>
                     </div>
                   </div>

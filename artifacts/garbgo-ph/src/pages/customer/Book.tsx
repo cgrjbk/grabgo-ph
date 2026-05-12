@@ -27,13 +27,22 @@ export default function BookPickupPage() {
     notes: '',
   })
 
+  // Cleanup object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      photoPreviews.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [photoPreviews])
+
   useEffect(() => {
     const fetchWasteTypes = async () => {
       try {
         const supabase = createClient()
         const { data } = await supabase.from('waste_types').select('*')
         setWasteTypes(data || [])
-      } catch {}
+      } catch (err) {
+        console.error('Failed to fetch waste types:', err)
+      }
     }
     fetchWasteTypes()
   }, [])
@@ -42,67 +51,108 @@ export default function BookPickupPage() {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files)
       setPhotos(prev => [...prev, ...newFiles])
+
       const newPreviews = newFiles.map(file => URL.createObjectURL(file))
       setPhotoPreviews(prev => [...prev, ...newPreviews])
     }
   }
 
   const removePhoto = (index: number) => {
+    // Revoke URL when removing
+    URL.revokeObjectURL(photoPreviews[index])
+
     setPhotos(prev => prev.filter((_, i) => i !== index))
     setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!form.waste_type_id) {
       toast.error("Please select a waste type")
       return
     }
+    if (!form.address?.trim()) {
+      toast.error("Please enter a pickup address")
+      return
+    }
+
     setLoading(true)
+
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Please log in again")
+
+      if (!user) {
+        toast.error("Please log in again")
+        return
+      }
 
       const wasteTypeId = parseInt(form.waste_type_id)
+
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           customer_id: user.id,
           waste_type_id: wasteTypeId,
-          address: form.address || 'Zamboanga City',
+          address: form.address.trim(),
           lat: form.lat,
           lng: form.lng,
           estimated_weight_kg: form.estimated_weight_kg,
           total_amount: form.estimated_weight_kg * 15,
-          notes: form.notes,
+          notes: form.notes?.trim() || null,
         })
         .select()
         .single()
 
-      if (bookingError) throw bookingError
+      if (bookingError) {
+        console.error("Booking Error:", bookingError)
+        throw new Error(bookingError.message)
+      }
 
-      for (const photo of photos) {
-        const fileName = `${booking.id}/${Date.now()}-${photo.name}`
-        const { error: uploadError } = await supabase.storage
-          .from('booking-photos')
-          .upload(fileName, photo, { upsert: true })
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('booking-photos')
-            .getPublicUrl(fileName)
-          await supabase.from('booking_photos').insert({
-            booking_id: booking.id,
-            url: urlData.publicUrl,
-            type: 'request'
-          })
+      if (!booking) throw new Error("Failed to create booking")
+
+      // Upload photos
+      if (photos.length > 0) {
+        for (const photo of photos) {
+          try {
+            const fileName = `${booking.id}/${Date.now()}-${photo.name.replace(/\s+/g, '-')}`
+
+            const { error: uploadError } = await supabase.storage
+              .from('booking-photos')
+              .upload(fileName, photo, { upsert: false })
+
+            if (uploadError) {
+              console.warn("Photo upload failed:", uploadError)
+              continue
+            }
+
+            const { data: urlData } = supabase.storage
+              .from('booking-photos')
+              .getPublicUrl(fileName)
+
+            await supabase.from('booking_photos').insert({
+              booking_id: booking.id,
+              url: urlData.publicUrl,
+              type: 'request'
+            })
+          } catch (photoError) {
+            console.warn("Photo processing error:", photoError)
+          }
         }
       }
 
-      toast.success("Booking created!", { description: "A collector will accept your request soon." })
+      toast.success("Booking created successfully!", {
+        description: "A collector will accept your request soon."
+      })
+
       navigate('/customer/dashboard')
+
     } catch (error: any) {
-      toast.error("Failed to create booking", { description: error.message })
+      console.error("Submit Error:", error)
+      toast.error("Failed to create booking", {
+        description: error.message || "Please try again later"
+      })
     } finally {
       setLoading(false)
     }
@@ -115,12 +165,14 @@ export default function BookPickupPage() {
           <h1 className="text-4xl font-bold text-gray-900">Book Garbage Pickup</h1>
           <p className="text-emerald-600 text-lg">Zamboanga City • RA 9003 Compliant</p>
         </div>
+
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">New Pickup Request</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Waste Type */}
               <div>
                 <Label className="text-base">Waste Type (RA 9003)</Label>
                 <select
@@ -137,12 +189,17 @@ export default function BookPickupPage() {
                 </select>
               </div>
 
+              {/* Map Picker */}
               <div>
                 <Label className="flex items-center gap-2 text-base mb-2">
                   <MapPin className="w-5 h-5" />
                   Pickup Location
                 </Label>
-                <Suspense fallback={<div className="w-full h-[400px] bg-gray-100 rounded-2xl flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>}>
+                <Suspense fallback={
+                  <div className="w-full h-[400px] bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                  </div>
+                }>
                   <MapPicker
                     lat={form.lat}
                     lng={form.lng}
@@ -151,6 +208,7 @@ export default function BookPickupPage() {
                 </Suspense>
               </div>
 
+              {/* Address */}
               <div>
                 <Label className="text-base">Full Address</Label>
                 <Textarea
@@ -162,6 +220,7 @@ export default function BookPickupPage() {
                 />
               </div>
 
+              {/* Weight & Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-base">Estimated Weight (kg)</Label>
@@ -186,6 +245,7 @@ export default function BookPickupPage() {
                 </div>
               </div>
 
+              {/* Photo Upload */}
               <div>
                 <Label className="flex items-center gap-2 text-base mb-3">
                   <Camera className="w-5 h-5" />
@@ -206,6 +266,7 @@ export default function BookPickupPage() {
                   <Upload className="w-6 h-6" />
                   <span className="font-medium">Click to upload photos</span>
                 </label>
+
                 {photoPreviews.length > 0 && (
                   <div className="grid grid-cols-4 gap-4 mt-6">
                     {photoPreviews.map((preview, index) => (
@@ -228,8 +289,20 @@ export default function BookPickupPage() {
                 )}
               </div>
 
-              <Button type="submit" size="lg" className="w-full text-lg py-7" disabled={loading}>
-                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Creating Request...</> : "Submit Pickup Request"}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full text-lg py-7"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Creating Request...
+                  </>
+                ) : (
+                  "Submit Pickup Request"
+                )}
               </Button>
             </form>
           </CardContent>

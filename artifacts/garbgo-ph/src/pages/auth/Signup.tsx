@@ -48,10 +48,11 @@ function SignupForm() {
         return
       }
 
-      toast.success("Account created successfully!", {
-        description: "You can now login.",
+      sessionStorage.setItem('pending_verification_email', formData.email)
+      toast.success("Account created!", {
+        description: "Check your email to verify your account.",
       })
-      navigate('/auth/login')
+      navigate('/auth/verify-email')
     } catch (error: any) {
       toast.error("Signup failed", { description: error.message })
     } finally {

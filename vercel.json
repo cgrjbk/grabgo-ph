@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm --filter @workspace/garbgo-ph run build",
+  "outputDirectory": "artifacts/garbgo-ph/dist/public",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

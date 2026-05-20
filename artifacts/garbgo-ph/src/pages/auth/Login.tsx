@@ -23,7 +23,26 @@ function LoginForm() {
         email: formData.email,
         password: formData.password,
       })
-      if (error) throw error
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          sessionStorage.setItem('pending_verification_email', formData.email)
+          toast.error("Email not verified", {
+            description: "Please check your inbox and verify your email first.",
+          })
+          navigate('/auth/verify-email')
+          return
+        }
+        throw error
+      }
+
+      if (!authData.user.email_confirmed_at) {
+        sessionStorage.setItem('pending_verification_email', formData.email)
+        toast.error("Email not verified", {
+          description: "Please verify your email before logging in.",
+        })
+        navigate('/auth/verify-email')
+        return
+      }
 
       let role = authData.user.user_metadata?.role
       if (!role) {

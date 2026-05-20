@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import LandingPage from "@/pages/Landing";
 import LoginPage from "@/pages/auth/Login";
 import SignupPage from "@/pages/auth/Signup";
+import VerifyEmailPage from "@/pages/auth/VerifyEmail";
 import CustomerDashboard from "@/pages/customer/Dashboard";
 import BookPickupPage from "@/pages/customer/Book";
 import CollectorJobsPage from "@/pages/collector/Jobs";
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/signup" component={SignupPage} />
+      <Route path="/auth/verify-email" component={VerifyEmailPage} />
       <Route path="/customer/dashboard" component={CustomerDashboard} />
       <Route path="/customer/book" component={BookPickupPage} />
       <Route path="/collector/jobs" component={CollectorJobsPage} />

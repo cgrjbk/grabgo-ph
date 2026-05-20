@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { useLocation } from 'wouter'
 import { MapPin, Clock, CheckCircle, Loader2, Plus, Wifi, WifiOff } from 'lucide-react'
 import CustomerLayout from '@/components/shared/CustomerLayout'
 import { toast } from 'sonner'
+
+const BookingMap = lazy(() => import('@/components/BookingMap'))
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
@@ -217,6 +219,20 @@ export default function CustomerDashboard() {
                       <div className="mt-3 flex items-center gap-2 text-sm text-purple-700 bg-purple-50 px-3 py-2 rounded-lg">
                         <span className="animate-pulse font-medium">🚛 Your collector is on the way!</span>
                       </div>
+                    )}
+                    {['accepted', 'in_progress'].includes(booking.status) && booking.lat && booking.lng && (
+                      <Suspense fallback={
+                        <div className="mt-3 h-48 rounded-xl bg-gray-100 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                        </div>
+                      }>
+                        <BookingMap
+                          lat={booking.lat}
+                          lng={booking.lng}
+                          address={booking.address}
+                          status={booking.status}
+                        />
+                      </Suspense>
                     )}
 
                     {booking.total_amount && (

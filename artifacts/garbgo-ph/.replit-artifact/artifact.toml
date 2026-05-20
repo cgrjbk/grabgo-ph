@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "GarbGo PH"
+version = "1.0.0"
+id = "artifacts/garbgo-ph"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22053
+
+[services.development]
+run = "pnpm --filter @workspace/garbgo-ph run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/garbgo-ph", "run", "build" ]
+publicDir = "artifacts/garbgo-ph/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22053"
+BASE_PATH = "/"

@@ -33,14 +33,29 @@ export default function BookPickupPage() {
     }
   }, [photoPreviews])
 
+  const DEFAULT_WASTE_TYPES = [
+    { id: 1, name: 'Biodegradable', base_price_per_kg: 5 },
+    { id: 2, name: 'Recyclable (Plastic)',  base_price_per_kg: 8 },
+    { id: 3, name: 'Recyclable (Paper)', base_price_per_kg: 6 },
+    { id: 4, name: 'Recyclable (Metal/Glass)', base_price_per_kg: 10 },
+    { id: 5, name: 'Residual / Non-Recyclable', base_price_per_kg: 12 },
+    { id: 6, name: 'Special Waste (Electronics)', base_price_per_kg: 20 },
+    { id: 7, name: 'Hazardous Waste', base_price_per_kg: 25 },
+  ]
+
   useEffect(() => {
     const fetchWasteTypes = async () => {
       try {
         const supabase = createClient()
-        const { data } = await supabase.from('waste_types').select('*')
-        setWasteTypes(data || [])
+        const { data, error } = await supabase.from('waste_types').select('*')
+        if (error || !data || data.length === 0) {
+          setWasteTypes(DEFAULT_WASTE_TYPES)
+        } else {
+          setWasteTypes(data)
+        }
       } catch (err) {
-        console.error('Failed to fetch waste types:', err)
+        console.error('Failed to fetch waste types, using defaults:', err)
+        setWasteTypes(DEFAULT_WASTE_TYPES)
       }
     }
     fetchWasteTypes()

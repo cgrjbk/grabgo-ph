@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Truck } from 'lucide-react'
 
 export default function SupabaseGuard({ children }: { children: React.ReactNode }) {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">

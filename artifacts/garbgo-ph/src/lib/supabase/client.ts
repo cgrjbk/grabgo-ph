@@ -1,20 +1,20 @@
-import { createClient as _createClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
 
-export const isSupabaseConfigured =
-  !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-export const createClient = () => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+export function isSupabaseConfigured() {
+  return !!(SUPABASE_URL && SUPABASE_ANON_KEY)
+}
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase URL or Anon Key is missing")
+let _client: SupabaseClient | null = null
+
+export function createClient() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('SUPABASE_NOT_CONFIGURED')
   }
-
-  return _createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-    },
-  })
+  if (!_client) {
+    _client = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  }
+  return _client
 }
